@@ -50,6 +50,10 @@
             </intent-filter>
         </receiver>
 
+        <property
+            android:name="android.app.appfunctions.app_metadata"
+            android:resource="@xml/app_metadata" />
+
     </application>
 
 </manifest>

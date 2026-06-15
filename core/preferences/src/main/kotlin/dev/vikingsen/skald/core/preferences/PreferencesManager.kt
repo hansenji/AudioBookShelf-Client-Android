@@ -50,15 +50,18 @@ open class PreferencesManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("skald_prefs", Context.MODE_PRIVATE)
 
     private val _serverUrl = MutableStateFlow(getServerUrl())
+    @get:JvmName("getServerUrlFlow")
     val serverUrl: StateFlow<String?> = _serverUrl.asStateFlow()
 
     private val _username = MutableStateFlow(getUsername())
+    @get:JvmName("getUsernameFlow")
     val username: StateFlow<String?> = _username.asStateFlow()
 
     private val _isLoggedIn = MutableStateFlow(isLoggedIn())
     val isLoggedInFlow: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     private val _hideEmptyLibraryTabs = MutableStateFlow(getHideEmptyLibraryTabs())
+    @get:JvmName("getHideEmptyLibraryTabsFlow")
     val hideEmptyLibraryTabs: StateFlow<Boolean> = _hideEmptyLibraryTabs.asStateFlow()
 
     suspend fun saveConnectionDetails(url: String, user: String, token: String, refreshToken: String? = null, userId: String? = null) {

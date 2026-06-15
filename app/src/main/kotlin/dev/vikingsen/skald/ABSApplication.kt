@@ -4,6 +4,8 @@ import android.app.Application
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.network.ktor3.KtorNetworkFetcherFactory
+import androidx.appfunctions.service.AppFunctionConfiguration
+import dev.vikingsen.skald.appfunctions.SkaldAppFunctions
 import dev.vikingsen.skald.di.appModule
 import io.ktor.client.HttpClient
 import org.koin.android.ext.koin.androidContext
@@ -12,7 +14,13 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import kotlinx.coroutines.launch
 
-class ABSApplication : Application(), SingletonImageLoader.Factory {
+class ABSApplication : Application(), SingletonImageLoader.Factory, AppFunctionConfiguration.Provider {
+    override val appFunctionConfiguration: AppFunctionConfiguration
+        get() = AppFunctionConfiguration.Builder()
+            .addEnclosingClassFactory(SkaldAppFunctions::class.java) {
+                GlobalContext.get().get<SkaldAppFunctions>()
+            }
+            .build()
     override fun onCreate() {
         super.onCreate()
         startKoin {

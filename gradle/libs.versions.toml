@@ -24,6 +24,7 @@ coil = "3.0.4"
 ksp = "2.3.8"
 paging = "3.3.2"
 androidxDatastoreTink = "1.3.0-alpha09"
+appFunctions = "1.0.0-alpha09"
 
 
 
@@ -82,6 +83,11 @@ coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" 
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 androidx-datastore-tink = { module = "androidx.datastore:datastore-tink", version.ref = "androidxDatastoreTink" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+
+# AppFunctions
+androidx-appfunctions = { module = "androidx.appfunctions:appfunctions", version.ref = "appFunctions" }
+androidx-appfunctions-service = { module = "androidx.appfunctions:appfunctions-service", version.ref = "appFunctions" }
+androidx-appfunctions-compiler = { module = "androidx.appfunctions:appfunctions-compiler", version.ref = "appFunctions" }
 
 
 # Paging 3

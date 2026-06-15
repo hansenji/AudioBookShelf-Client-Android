@@ -5,12 +5,13 @@ plugins {
   alias(libs.plugins.compose.compiler)
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.koin.compiler)
+  alias(libs.plugins.ksp)
 }
 
 
 android {
     namespace = "dev.vikingsen.skald"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         applicationId = "dev.vikingsen.skald"
         minSdk = 26
@@ -150,6 +151,13 @@ dependencies {
   implementation(project(":feature:settings:impl"))
   implementation(project(":feature:androidauto"))
   implementation(project(":feature:miniplayer"))
+
+  // AppFunctions
+  implementation(libs.androidx.appfunctions)
+  implementation(libs.androidx.appfunctions.service)
+  ksp(libs.androidx.appfunctions.compiler)
 }
 
-
+ksp {
+  arg("appfunctions:aggregateAppFunctions", "true")
+}

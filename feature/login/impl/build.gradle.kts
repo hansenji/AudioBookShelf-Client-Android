@@ -36,4 +36,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.koin.androidx.compose)
+
+    testImplementation(testFixtures(project(":domain")))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation("androidx.compose.ui:ui-test")
 }
+
+
+

@@ -156,7 +156,29 @@ dependencies {
   implementation(libs.androidx.appfunctions)
   implementation(libs.androidx.appfunctions.service)
   ksp(libs.androidx.appfunctions.compiler)
+
+  // Kover Aggregated Reports
+  kover(project(":core:model"))
+  kover(project(":core:preferences"))
+  kover(project(":core:database"))
+  kover(project(":core:network"))
+  kover(project(":core:player"))
+  kover(project(":domain"))
+  kover(project(":data"))
+  kover(project(":feature:login:api"))
+  kover(project(":feature:login:impl"))
+  kover(project(":feature:home:api"))
+  kover(project(":feature:home:impl"))
+  kover(project(":feature:library:api"))
+  kover(project(":feature:library:impl"))
+  kover(project(":feature:player:api"))
+  kover(project(":feature:player:impl"))
+  kover(project(":feature:settings:api"))
+  kover(project(":feature:settings:impl"))
+  kover(project(":feature:androidauto"))
+  kover(project(":feature:miniplayer"))
 }
+
 
 ksp {
   arg("appfunctions:aggregateAppFunctions", "true")

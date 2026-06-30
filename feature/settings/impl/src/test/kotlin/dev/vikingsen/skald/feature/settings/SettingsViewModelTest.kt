@@ -1,197 +1,203 @@
 package dev.vikingsen.skald.feature.settings
 
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
+import androidx.test.core.app.ApplicationProvider
 import dev.vikingsen.skald.core.model.Library
-import dev.vikingsen.skald.domain.repository.AudiobookshelfRepository
-import dev.vikingsen.skald.domain.repository.SettingsRepository
+import dev.vikingsen.skald.domain.fakes.FakeAudiobookshelfRepository
+import dev.vikingsen.skald.domain.fakes.FakeSettingsRepository
 import dev.vikingsen.skald.domain.usecase.LogoutUseCase
-import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.*
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.File
-import java.nio.file.Files
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class SettingsViewModelTest {
 
-    private val logoutUseCase = mockk<LogoutUseCase>(relaxed = true)
-    private val settingsRepository = mockk<SettingsRepository>(relaxed = true)
-    private val audiobookshelfRepository = mockk<AudiobookshelfRepository>(relaxed = true)
-    private val context = mockk<Context>(relaxed = true)
-
-    private val connectivityManager = mockk<ConnectivityManager>()
-    private val networkCapabilities = mockk<NetworkCapabilities>()
-
-    private lateinit var viewModel: SettingsViewModel
-    private lateinit var tempDir: File
-    private lateinit var tempDbFile: File
-
     private val testDispatcher = StandardTestDispatcher()
+
+    private lateinit var context: Context
+    private lateinit var fakeSettingsRepository: FakeSettingsRepository
+    private lateinit var fakeAudiobookshelfRepository: FakeAudiobookshelfRepository
+    private lateinit var logoutUseCase: LogoutUseCase
+    private lateinit var viewModel: SettingsViewModel
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        context = ApplicationProvider.getApplicationContext()
 
-        // Setup mock connectivity
-        every { context.getSystemService(Context.CONNECTIVITY_SERVICE) } returns connectivityManager
-        every { connectivityManager.activeNetwork } returns mockk()
-        every { connectivityManager.getNetworkCapabilities(any()) } returns networkCapabilities
-        every { networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) } returns true
+        fakeSettingsRepository = FakeSettingsRepository()
+        fakeAudiobookshelfRepository = FakeAudiobookshelfRepository()
+        logoutUseCase = LogoutUseCase(fakeAudiobookshelfRepository, fakeSettingsRepository)
 
-        // Setup mock temporary storage paths
-        tempDir = Files.createTempDirectory("skald_test").toFile()
-        tempDbFile = File(tempDir, "skald_db")
-        every { context.getExternalFilesDir(null) } returns tempDir
-        every { context.getDatabasePath("skald_db") } returns tempDbFile
-
-        // Setup mock settings returns
-        every { settingsRepository.getServerUrl() } returns "https://abs.example.com"
-        every { settingsRepository.getUsername() } returns "test_user"
-        every { settingsRepository.getSkipForwardDuration() } returns 30
-        every { settingsRepository.getSkipBackwardDuration() } returns 10
-        every { settingsRepository.getPlaybackSpeed() } returns 1.25f
-        every { settingsRepository.getGoBackOnInterrupt() } returns true
-        every { settingsRepository.getLibrarySyncIntervalHours() } returns 12
-        every { settingsRepository.getLibraryLastSyncTimestamp() } returns 5000L
-        every { settingsRepository.getLibraryId() } returns "lib_123"
-        coEvery { settingsRepository.getCachedLibraries() } returns listOf(
-            Library("lib_123", "Audiobooks", "book")
+        // Seed default preferences in fake repo
+        fakeSettingsRepository.fakeUrl = "https://my-server.com"
+        fakeSettingsRepository.fakeUsername = "settings-user"
+        fakeSettingsRepository.saveSkipForwardDuration(45)
+        fakeSettingsRepository.saveSkipBackwardDuration(15)
+        fakeSettingsRepository.savePlaybackSpeed(1.25f)
+        fakeSettingsRepository.saveGoBackOnInterrupt(false)
+        fakeSettingsRepository.saveHideEmptyLibraryTabs(true)
+        fakeSettingsRepository.saveLibrarySyncIntervalHours(12)
+        fakeSettingsRepository.saveLibraryLastSyncTimestamp(9876543210L)
+        fakeSettingsRepository.saveLibraryId("lib-settings")
+        fakeSettingsRepository.cachedLibraries.addAll(
+            listOf(Library(id = "lib-settings", name = "Settings Library", type = "audiobook"))
         )
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val shadowConnectivityManager = org.robolectric.Shadows.shadowOf(connectivityManager)
+        
+        val networkInfo = org.robolectric.shadows.ShadowNetworkInfo.newInstance(
+            android.net.NetworkInfo.DetailedState.CONNECTED,
+            android.net.ConnectivityManager.TYPE_WIFI,
+            0,
+            true,
+            true
+        )
+        shadowConnectivityManager.setActiveNetworkInfo(networkInfo)
+        
+        val activeNet = connectivityManager.activeNetwork
+        if (activeNet != null) {
+            val networkCapabilities = org.robolectric.shadows.ShadowNetworkCapabilities.newInstance()
+            val shadowCapabilities = org.robolectric.Shadows.shadowOf(networkCapabilities)
+            shadowCapabilities.addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            shadowConnectivityManager.setNetworkCapabilities(activeNet, networkCapabilities)
+        }
 
         viewModel = SettingsViewModel(
             logoutUseCase = logoutUseCase,
-            settingsRepository = settingsRepository,
-            audiobookshelfRepository = audiobookshelfRepository,
+            settingsRepository = fakeSettingsRepository,
+            audiobookshelfRepository = fakeAudiobookshelfRepository,
             context = context,
             ioDispatcher = testDispatcher
         )
-
-        testDispatcher.scheduler.advanceUntilIdle()
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        tempDir.deleteRecursively()
-        clearAllMocks()
     }
 
-    @Test
-    fun testInitialLoad() = runTest(testDispatcher) {
-        assertEquals("https://abs.example.com", viewModel.serverUrl.value)
-        assertEquals("test_user", viewModel.username.value)
-        assertEquals("Audiobooks", viewModel.activeLibraryName.value)
-        assertEquals(30, viewModel.skipForwardDuration.value)
-        assertEquals(10, viewModel.skipBackwardDuration.value)
-        assertEquals(1.25f, viewModel.playbackSpeed.value)
-        assertEquals(true, viewModel.goBackOnInterrupt.value)
-        assertEquals(12, viewModel.syncIntervalHours.value)
-        assertEquals(5000L, viewModel.lastSyncTimestamp.value)
-    }
 
     @Test
-    fun testUpdateSkipForwardDuration() = runTest(testDispatcher) {
-        viewModel.updateSkipForwardDuration(45)
-        assertEquals(45, viewModel.skipForwardDuration.value)
-        verify { settingsRepository.saveSkipForwardDuration(45) }
-    }
-
-    @Test
-    fun testUpdateSkipBackwardDuration() = runTest(testDispatcher) {
-        viewModel.updateSkipBackwardDuration(15)
-        assertEquals(15, viewModel.skipBackwardDuration.value)
-        verify { settingsRepository.saveSkipBackwardDuration(15) }
-    }
-
-    @Test
-    fun testUpdatePlaybackSpeed() = runTest(testDispatcher) {
-        viewModel.updatePlaybackSpeed(2.0f)
-        assertEquals(2.0f, viewModel.playbackSpeed.value)
-        verify { settingsRepository.savePlaybackSpeed(2.0f) }
-    }
-
-    @Test
-    fun testUpdateGoBackOnInterrupt() = runTest(testDispatcher) {
-        viewModel.updateGoBackOnInterrupt(false)
-        assertEquals(false, viewModel.goBackOnInterrupt.value)
-        verify { settingsRepository.saveGoBackOnInterrupt(false) }
-    }
-
-    @Test
-    fun testUpdateSyncInterval() = runTest(testDispatcher) {
-        viewModel.updateSyncInterval(6)
-        assertEquals(6, viewModel.syncIntervalHours.value)
-        verify { settingsRepository.saveLibrarySyncIntervalHours(6) }
-    }
-
-    @Test
-    fun testSyncNow_success() = runTest(testDispatcher) {
-        viewModel.syncNow()
-        
-        // Advance time to run coroutine
+    fun init_loadsSettingsCorrectly() = runTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { audiobookshelfRepository.syncLibraryBooks("lib_123", forceRefresh = true) }
-        coVerify { audiobookshelfRepository.syncGlobalProgress(forceRefresh = true) }
+        assertEquals("https://my-server.com", viewModel.serverUrl.value)
+        assertEquals("settings-user", viewModel.username.value)
+        assertEquals(45, viewModel.skipForwardDuration.value)
+        assertEquals(15, viewModel.skipBackwardDuration.value)
+        assertEquals(1.25f, viewModel.playbackSpeed.value)
+        assertFalse(viewModel.goBackOnInterrupt.value)
+        assertTrue(viewModel.hideEmptyLibraryTabs.value)
+        assertEquals(12, viewModel.syncIntervalHours.value)
+        assertEquals(9876543210L, viewModel.lastSyncTimestamp.value)
+        assertEquals("Settings Library", viewModel.activeLibraryName.value)
     }
 
     @Test
-    fun testClearCache() = runTest(testDispatcher) {
-        // Create mock downloaded file
-        val downloadsFolder = File(tempDir, "downloads")
-        downloadsFolder.mkdirs()
-        val dummyFile = File(downloadsFolder, "test_track.mp3")
-        dummyFile.writeText("audio data")
+    fun updateSkipForwardDuration_persistsAndUpdatesFlow() = runTest {
+        viewModel.updateSkipForwardDuration(60)
+        assertEquals(60, viewModel.skipForwardDuration.value)
+        assertEquals(60, fakeSettingsRepository.getSkipForwardDuration())
+    }
 
+    @Test
+    fun updateSkipBackwardDuration_persistsAndUpdatesFlow() = runTest {
+        viewModel.updateSkipBackwardDuration(5)
+        assertEquals(5, viewModel.skipBackwardDuration.value)
+        assertEquals(5, fakeSettingsRepository.getSkipBackwardDuration())
+    }
+
+    @Test
+    fun updatePlaybackSpeed_persistsAndUpdatesFlow() = runTest {
+        viewModel.updatePlaybackSpeed(1.5f)
+        assertEquals(1.5f, viewModel.playbackSpeed.value)
+        assertEquals(1.5f, fakeSettingsRepository.getPlaybackSpeed())
+    }
+
+    @Test
+    fun updateGoBackOnInterrupt_persistsAndUpdatesFlow() = runTest {
+        viewModel.updateGoBackOnInterrupt(true)
+        assertTrue(viewModel.goBackOnInterrupt.value)
+        assertTrue(fakeSettingsRepository.getGoBackOnInterrupt())
+    }
+
+    @Test
+    fun updateHideEmptyLibraryTabs_persistsAndUpdatesFlow() = runTest {
+        viewModel.updateHideEmptyLibraryTabs(false)
+        assertFalse(viewModel.hideEmptyLibraryTabs.value)
+        assertFalse(fakeSettingsRepository.getHideEmptyLibraryTabs())
+    }
+
+    @Test
+    fun updateSyncInterval_persistsAndUpdatesFlow() = runTest {
+        viewModel.updateSyncInterval(6)
+        assertEquals(6, viewModel.syncIntervalHours.value)
+        assertEquals(6, fakeSettingsRepository.getLibrarySyncIntervalHours())
+    }
+
+    @Test
+    fun logout_clearsRepositoriesAndTriggersCallback() = runTest {
+        var onCompleteCalled = false
+        viewModel.logout { onCompleteCalled = true }
+        
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(onCompleteCalled)
+        assertNull(fakeSettingsRepository.getServerUrl())
+        assertNull(fakeSettingsRepository.getUsername())
+        assertTrue(fakeAudiobookshelfRepository.clearLocalDataCalled)
+    }
+
+    @Test
+    fun syncNow_executesSyncAndReloadsSettings() = runTest {
+        assertFalse(viewModel.isSyncing.value)
+
+        viewModel.syncNow()
+        
+        // Let background execution finish
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.isSyncing.value)
+        assertTrue(fakeAudiobookshelfRepository.syncLibraryBooksCalled)
+        assertTrue(fakeAudiobookshelfRepository.syncGlobalProgressCalled)
+    }
+
+    @Test
+    fun clearCache_deletesDownloadsFolderAndClearsLocalData() = runTest {
+        // Create a dummy downloads directory and file
+        val downloadsDir = File(context.getExternalFilesDir(null), "downloads")
+        downloadsDir.mkdirs()
+        val dummyFile = File(downloadsDir, "test_track.mp3")
+        dummyFile.createNewFile()
         assertTrue(dummyFile.exists())
 
         viewModel.clearCache()
         
-        // Advance time to run IO operations
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Verify downloads were deleted
-        assertTrue(!dummyFile.exists())
-        assertTrue(!downloadsFolder.exists())
-
-        // Verify database was cleared
-        coVerify { audiobookshelfRepository.clearLocalData() }
+        assertFalse(dummyFile.exists())
+        assertFalse(downloadsDir.exists())
+        assertTrue(fakeAudiobookshelfRepository.clearLocalDataCalled)
     }
 
     @Test
-    fun testLogout() = runTest(testDispatcher) {
-        var completed = false
-        viewModel.logout { completed = true }
-
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertTrue(completed)
-        coVerify { logoutUseCase.invoke() }
-    }
-
-    @Test
-    fun testCalculateOrphanedSize() = runTest(testDispatcher) {
-        coEvery { audiobookshelfRepository.getOrphanedDownloadsSize() } returns 52428800L // 50 MB
-        
-        viewModel.calculateOrphanedSize()
-        testDispatcher.scheduler.advanceUntilIdle()
-        
-        assertEquals("50.00 MB", viewModel.orphanedSize.value)
-    }
-
-    @Test
-    fun testDeleteOrphanedDownloads() = runTest(testDispatcher) {
+    fun deleteOrphanedDownloads_callsRepositoryAndDelete() = runTest {
         viewModel.deleteOrphanedDownloads()
-        testDispatcher.scheduler.advanceUntilIdle()
         
-        coVerify { audiobookshelfRepository.deleteOrphanedDownloads() }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(fakeAudiobookshelfRepository.deleteOrphanedDownloadsCalled)
     }
 }

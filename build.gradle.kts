@@ -6,10 +6,22 @@ plugins {
   alias(libs.plugins.kotlin.serialization) apply false
   alias(libs.plugins.ksp) apply false
   alias(libs.plugins.koin.compiler) apply false
+  alias(libs.plugins.kover)
 }
 
 subprojects {
+    plugins.withId("com.android.library") {
+        apply(plugin = "org.jetbrains.kotlinx.kover")
+    }
+    plugins.withId("com.android.application") {
+        apply(plugin = "org.jetbrains.kotlinx.kover")
+    }
+
+
+
+
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+
         compilerOptions {
             freeCompilerArgs.addAll("-Xexplicit-backing-fields")
         }
@@ -28,6 +40,18 @@ subprojects {
             lint {
                 abortOnError = false
             }
+            testOptions {
+                unitTests {
+                    isIncludeAndroidResources = true
+                    isReturnDefaultValues = true
+                }
+            }
+        }
+        dependencies {
+            add("testImplementation", libs.junit)
+            add("testImplementation", libs.robolectric)
+            add("testImplementation", libs.mockk)
+            add("testImplementation", libs.kotlinx.coroutines.test)
         }
     }
 
@@ -36,6 +60,15 @@ subprojects {
             lint {
                 abortOnError = false
             }
+            testOptions {
+                unitTests {
+                    isIncludeAndroidResources = true
+                    isReturnDefaultValues = true
+                }
+            }
+        }
+        dependencies {
+            add("testImplementation", libs.robolectric)
         }
     }
 }

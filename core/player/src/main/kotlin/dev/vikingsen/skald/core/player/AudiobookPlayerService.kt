@@ -1,5 +1,7 @@
 package dev.vikingsen.skald.core.player
 
+import android.app.PendingIntent
+import android.content.Intent
 import androidx.media3.common.Player
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
@@ -13,11 +15,27 @@ class AudiobookPlayerService : MediaLibraryService() {
     override fun onCreate() {
         super.onCreate()
         
-        mediaLibrarySession = MediaLibrarySession.Builder(
+        val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            action = "dev.vikingsen.skald.ACTION_PLAYER"
+        }
+        val pendingIntent = intent?.let {
+            PendingIntent.getActivity(
+                this,
+                0,
+                it,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
+        val builder = MediaLibrarySession.Builder(
             this,
             player,
             sessionCallback
-        ).build()
+        )
+        if (pendingIntent != null) {
+            builder.setSessionActivity(pendingIntent)
+        }
+        mediaLibrarySession = builder.build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {

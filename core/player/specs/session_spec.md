@@ -165,7 +165,7 @@ val featureAndroidAutoModule = module {
 ```
 
 ### C. Service Binding (`:core:player`)
-`AudiobookPlayerService` injects the registered `MediaLibrarySession.Callback`. Due to Koin module loading order in the `:app` module, this resolves to `AndroidAutoBrowseCallback` if the Android Auto feature is present, and falls back to `AudiobookSessionCallback` otherwise:
+`AudiobookPlayerService` injects the registered `MediaLibrarySession.Callback`. Due to Koin module loading order in the `:app` module, this resolves to `AndroidAutoBrowseCallback` if the Android Auto feature is present, and falls back to `AudiobookSessionCallback` otherwise. To ensure tapping the media playback notification opens the app and player, the service configures a session activity launch intent:
 ```kotlin
 class AudiobookPlayerService : MediaLibraryService() {
     private val player: Player by inject()
@@ -175,11 +175,27 @@ class AudiobookPlayerService : MediaLibraryService() {
     override fun onCreate() {
         super.onCreate()
         
-        mediaLibrarySession = MediaLibrarySession.Builder(
+        val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            action = "dev.vikingsen.skald.ACTION_PLAYER"
+        }
+        val pendingIntent = intent?.let {
+            PendingIntent.getActivity(
+                this,
+                0,
+                it,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
+        val builder = MediaLibrarySession.Builder(
             this,
             player,
             sessionCallback
-        ).build()
+        )
+        if (pendingIntent != null) {
+            builder.setSessionActivity(pendingIntent)
+        }
+        mediaLibrarySession = builder.build()
     }
 }
 ```

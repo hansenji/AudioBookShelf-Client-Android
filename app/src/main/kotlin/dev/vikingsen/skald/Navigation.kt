@@ -46,6 +46,8 @@ import dev.vikingsen.skald.feature.player.api.Player
 import dev.vikingsen.skald.feature.miniplayer.MiniPlayerLayout
 import dev.vikingsen.skald.feature.miniplayer.MiniPlayerViewModel
 import org.koin.androidx.compose.koinViewModel
+import androidx.compose.ui.platform.LocalContext
+import android.app.Activity
 
 private enum class TopLevelDestination(
     val navKey: NavKey,
@@ -78,11 +80,28 @@ fun MainNavigation() {
     val mainViewModel: MainViewModel = koinViewModel()
     val miniPlayerViewModel: MiniPlayerViewModel = koinViewModel()
 
+    val startDestination = remember {
+        mainViewModel.startDestination
+    }
+
+    val backStack = rememberNavBackStack(startDestination)
+
+    val context = LocalContext.current
+    val activity = remember(context) { context as? Activity }
+
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner, activity) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                 mainViewModel.syncGlobalProgress()
+                activity?.intent?.let { intent ->
+                    if (intent.action == "dev.vikingsen.skald.ACTION_PLAYER") {
+                        intent.action = null
+                        if (backStack.lastOrNull() != Player) {
+                            backStack.add(Player)
+                        }
+                    }
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -90,12 +109,6 @@ fun MainNavigation() {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-
-    val startDestination = remember {
-        mainViewModel.startDestination
-    }
-
-    val backStack = rememberNavBackStack(startDestination)
     val miniPlayerState by miniPlayerViewModel.uiState.collectAsState()
     val currentKey = backStack.lastOrNull()
     val showMiniPlayer = miniPlayerState != null && currentKey != Login && currentKey != Player

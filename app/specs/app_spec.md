@@ -11,8 +11,10 @@ This specification details the specifics of the `:app` module, which acts as the
   - Configures standard Android loggers and links context.
   - Loads `appModule` which merges all sub-module DI definitions.
 - **`MainActivity`**: Inherits from `ComponentActivity`. It serves as the single window frame:
+  - Configured with `android:launchMode="singleTop"` to reuse the running instance when launched from external entry points (like notifications).
   - Enables edge-to-edge rendering with custom transparent system status bar and navigation bar styles.
   - Hosts the main Compose UI hierarchy wrapped in the root application theme (`SkaldTheme`) and a base Surface container.
+  - Overrides `onNewIntent` to call `setIntent(intent)` to propagate incoming intents to the Compose layer.
   - Calls `MainNavigation()` to launch the navigation entry point.
 
 ---
@@ -45,6 +47,7 @@ The `:app` module is responsible for defining page destinations and handling tra
   - Observes `onLoginSuccess` to route to the main `Library` page.
   - Coordinates screen transition callbacks (e.g. clicking a book to navigate to `Detail`, clicking logout to return to `Login`).
   - Injects `PlayerManager` to trigger media playback initialization when routing from book details to the player interface.
+  - Observes the activity's intent during the `ON_RESUME` lifecycle event; if the intent action is `dev.vikingsen.skald.ACTION_PLAYER`, it routes to the `Player` destination and clears the action.
 
 ---
 

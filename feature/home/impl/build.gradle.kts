@@ -43,4 +43,8 @@ dependencies {
     
     // Kotlin Serialization
     implementation(libs.ktor.serialization.kotlinx.json)
+
+    testImplementation(testFixtures(project(":domain")))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
 }
+

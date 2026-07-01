@@ -48,5 +48,8 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(testFixtures(project(":domain")))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation("androidx.compose.ui:ui-test")
 }
 

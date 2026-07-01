@@ -323,7 +323,8 @@ Actions:
   author <id>           Get details of a specific author (including their books).
                         Example: ./abs-cli.main.kts author auth_111
 
-  series [id]           List series in a library (falls back to active library).
+  series [id]           List series in a library (falls back to active library),
+                        or get details of a specific series if a series ID is provided.
                         Example: ./abs-cli.main.kts series
 """
     println(helpText.trimIndent())
@@ -539,7 +540,7 @@ when (action.lowercase()) {
         val limit = commandArgs.options["limit"] ?: "50"
         val page = commandArgs.options["page"] ?: "0"
         
-        val path = "api/libraries/$libraryId/items?limit=$limit&page=$page&minified=0"
+        val path = "api/libraries/$libraryId/items?limit=$limit&page=$page"
         val response = client.sendRequest("GET", path)
         val json = checkResponse(response, "library-items").asJsonObject
         
@@ -627,7 +628,7 @@ when (action.lowercase()) {
         val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
         val limit = commandArgs.options["limit"]
         val path = if (limit != null) {
-            "api/libraries/$libraryId/search?q=$encodedQuery&limit=$limit"
+            "api/libraries/$libraryId/search?q=$encodedQuery&limit=$limit&minified=1"
         } else {
             "api/libraries/$libraryId/search?q=$encodedQuery"
         }
@@ -981,8 +982,104 @@ when (action.lowercase()) {
     }
     
     "series" -> {
+        val targetId = if (commandArgs.actionParams.isNotEmpty()) commandArgs.actionParams[0] else null
+        
+        if (targetId != null) {
+            // First try to look up the series details from the library series list with minified=0 to get books details
+            val libraryId = config.libraryId
+            if (libraryId != null) {
+                val libSeriesResponse = client.sendRequest("GET", "api/libraries/$libraryId/series?limit=10000&minified=0&sort=name")
+                if (libSeriesResponse.statusCode() == 200) {
+                    val libSeriesJson = checkResponse(libSeriesResponse, "series").asJsonObject
+                    val results = libSeriesJson.getAsJsonArray("results")
+                    var foundSeries: JsonObject? = null
+                    for (item in results) {
+                        val sObj = item.asJsonObject
+                        if (sObj.get("id").asString == targetId) {
+                            foundSeries = sObj
+                            break
+                        }
+                    }
+                    
+                    if (foundSeries != null) {
+                        if (commandArgs.json) {
+                            println(gson.toJson(foundSeries))
+                        } else {
+                            println("Series Details:")
+                            println("  ID:          $targetId")
+                            println("  Name:        ${foundSeries.get("name").asString}")
+                            val descElement = foundSeries.get("description")
+                            val description = if (descElement == null || descElement.isJsonNull) "None" else descElement.asString
+                            println("  Description: $description")
+                            
+                            val books = foundSeries.getAsJsonArray("books")
+                            if (books != null && books.size() > 0) {
+                                println("\nBooks in Series:")
+                                val bookHeaders = listOf("Sequence", "Book ID", "Title", "Author")
+                                val bookRows = books.map { b ->
+                                    val obj = b.asJsonObject
+                                    val media = obj.getAsJsonObject("media")
+                                    val metadata = media?.getAsJsonObject("metadata")
+                                    var sequence = metadata?.getAsJsonArray("series")?.mapNotNull { s ->
+                                        val sObj = s.asJsonObject
+                                        val sId = sObj.get("id")
+                                        val sSeq = sObj.get("sequence")
+                                        if (sId != null && !sId.isJsonNull && sId.asString == targetId) {
+                                            if (sSeq != null && !sSeq.isJsonNull) sSeq.asString else null
+                                        } else null
+                                    }?.firstOrNull()
+                                    
+                                    if (sequence == null) {
+                                        val sName = metadata?.get("seriesName")?.let { if (it.isJsonNull) null else it.asString }
+                                        if (sName != null && sName.contains("#")) {
+                                            sequence = sName.substringAfterLast("#").trim()
+                                        }
+                                    }
+                                    if (sequence == null) sequence = "N/A"
+                                    
+                                    val bId = obj.get("id")?.let { if (it.isJsonNull) "N/A" else it.asString } ?: "N/A"
+                                    val bTitle = metadata?.get("title")?.let { if (it.isJsonNull) "N/A" else it.asString } ?: "N/A"
+                                    val bAuthor = metadata?.get("authorName")?.let { if (it.isJsonNull) "N/A" else it.asString } ?: "N/A"
+                                    
+                                    listOf(
+                                        sequence,
+                                        bId,
+                                        bTitle,
+                                        bAuthor
+                                    )
+                                }.sortedWith(compareBy<List<String>> { 
+                                    it[0].toDoubleOrNull() ?: Double.MAX_VALUE 
+                                }.thenBy { it[2] })
+                                
+                                printTable(bookHeaders, bookRows)
+                            }
+                        }
+                        exitProcess(0)
+                    }
+                }
+            }
+            
+            // Fallback: fetch from /api/series/{seriesId} which has basic info but no books array
+            val response = client.sendRequest("GET", "api/series/$targetId")
+            if (response.statusCode() == 200) {
+                val json = checkResponse(response, "series-detail").asJsonObject
+                if (commandArgs.json) {
+                    println(gson.toJson(json))
+                } else {
+                    println("Series Details:")
+                    println("  ID:          $targetId")
+                    println("  Name:        ${json.get("name").asString}")
+                    val descElement = json.get("description")
+                    val description = if (descElement == null || descElement.isJsonNull) "None" else descElement.asString
+                    println("  Description: $description")
+                    println("\nBooks in Series: N/A (books details not returned by fallback endpoint)")
+                }
+                exitProcess(0)
+            }
+        }
+        
         val libraryId = when {
-            commandArgs.actionParams.isNotEmpty() -> commandArgs.actionParams[0]
+            targetId != null -> targetId
             config.libraryId != null -> config.libraryId
             else -> {
                 System.err.println("Error: series requires a library ID as an argument or a saved active library.")
@@ -991,8 +1088,12 @@ when (action.lowercase()) {
             }
         }
         val response = client.sendRequest("GET", "api/libraries/$libraryId/series?limit=10000&minified=1&sort=name")
-        val json = checkResponse(response, "series").asJsonObject
+        if (response.statusCode() == 404 && targetId != null) {
+            System.err.println("Error: '$targetId' is neither a valid series ID nor library ID on this server.")
+            exitProcess(2)
+        }
         
+        val json = checkResponse(response, "series").asJsonObject
         if (commandArgs.json) {
             println(gson.toJson(json))
         } else {

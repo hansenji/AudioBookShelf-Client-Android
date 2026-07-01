@@ -116,3 +116,5 @@ For deep-dive documentation on specific aspects of the codebase:
 - Visual identity and design language: See [specs/design_spec.md](file:///home/hansenji/src/abs-client-app/specs/design_spec.md)
 - Persistent SQLite schemas: See [core/database/specs/database_spec.md](file:///home/hansenji/src/abs-client-app/core/database/specs/database_spec.md)
 - Settings & User Preferences specifications: See [core/preferences/specs/settings_spec.md](file:///home/hansenji/src/abs-client-app/core/preferences/specs/settings_spec.md)
+- Testing & Code Coverage strategy: See [specs/testing_spec.md](file:///home/hansenji/src/abs-client-app/specs/testing_spec.md)
+

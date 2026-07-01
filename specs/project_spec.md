@@ -131,4 +131,6 @@ To help developers easily inspect the API source of truth, you can configure a l
 To inspect detailed configurations and workflows for specific features, refer to the following sub-specifications:
 - **[Authentication Specification](file:///home/hansenji/src/abs-client-app/specs/auth_spec.md)**: Outlines secure token storage (Tink-encrypted DataStore), proactive & reactive token refresh, and login validation policies.
 - **[Design Specification](file:///home/hansenji/src/abs-client-app/specs/design_spec.md)**: Outlines the premium dark theme, typography system, custom icons, blurred backgrounds, component designs, and adaptive layout mappings.
+- **[Testing Specification](file:///home/hansenji/src/abs-client-app/specs/testing_spec.md)**: Outlines the testing tiers (JVM, Robolectric, and Instrumented), Robolectric setups, and target code coverage rates per module.
+
 

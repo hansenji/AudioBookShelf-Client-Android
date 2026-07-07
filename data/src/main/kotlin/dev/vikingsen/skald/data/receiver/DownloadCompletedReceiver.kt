@@ -49,7 +49,33 @@ class DownloadCompletedReceiver : BroadcastReceiver(), KoinComponent {
                                 if (status == DownloadManager.STATUS_SUCCESSFUL && !localUriString.isNullOrEmpty()) {
                                     val localPath = Uri.parse(localUriString).path
                                     if (localPath != null) {
-                                        updateDatabase(bookId, ino, "COMPLETED", localPath)
+                                        val tmpFile = File(localPath)
+                                        if (tmpFile.exists()) {
+                                            val finalPath = if (localPath.endsWith(".tmp")) {
+                                                localPath.substringBeforeLast(".tmp")
+                                            } else {
+                                                localPath
+                                            }
+                                            val finalFile = File(finalPath)
+                                            var moveSuccessful = false
+                                            try {
+                                                if (finalFile.exists()) {
+                                                    finalFile.delete()
+                                                }
+                                                moveSuccessful = tmpFile.renameTo(finalFile)
+                                            } catch (e: Exception) {
+                                                Log.e("DownloadCompleted", "Failed to rename temp download file", e)
+                                            }
+
+                                            if (moveSuccessful) {
+                                                downloadManager.remove(downloadId)
+                                                updateDatabase(bookId, ino, "COMPLETED", finalPath)
+                                            } else {
+                                                updateDatabase(bookId, ino, "COMPLETED", localPath)
+                                            }
+                                        } else {
+                                            updateDatabase(bookId, ino, "COMPLETED", localPath)
+                                        }
                                     }
                                 } else if (status == DownloadManager.STATUS_FAILED) {
                                     updateDatabase(bookId, ino, "NOT_DOWNLOADED", null)

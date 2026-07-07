@@ -454,7 +454,7 @@ class AudiobookshelfRepositoryImpl(
                 if (!folder.exists()) folder.mkdirs()
                 
                 val extension = file.filename.substringAfterLast('.', "mp3")
-                val destinationFile = File(folder, "${file.ino}.$extension")
+                val destinationFile = File(folder, "${file.ino}.$extension.tmp")
 
                 val request = DownloadManager.Request(Uri.parse(downloadUrl))
                     .setTitle(file.filename)
@@ -979,7 +979,7 @@ class AudiobookshelfRepositoryImpl(
                 }
 
                 if (book != null && book.audioFiles.isNotEmpty()) {
-                    val filesOnDisk = bookDir.listFiles { file -> file.isFile } ?: continue
+                    val filesOnDisk = bookDir.listFiles { file -> file.isFile && !file.name.endsWith(".tmp") } ?: continue
                     val diskInos = filesOnDisk.map { it.name.substringBeforeLast('.') }.toSet()
                     
                     var updated = false

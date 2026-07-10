@@ -238,6 +238,53 @@ Gets the complete manifest for a single book or podcast, including individual tr
 
 ---
 
+### D. Fetch Library Series
+Retrieves series configured in a library.
+
+*   **Endpoint**: `GET /api/libraries/{libraryId}/series`
+*   **Parameters**: `limit` (Int), `minified` (Int) [defaults to `1` on server. Set to `0` to request non-minified metadata which includes the list of books in the series and their sequence numbers, allowing correct ordering]
+
+#### Headers
+*   **Request**: 
+    *   `Authorization: Bearer <jwt_token>`
+    *   `If-None-Match: <etag>` (Optional, for caching)
+
+#### Response Schema (minified = 0)
+```json
+{
+  "results": [
+    {
+      "id": "series_uuid",
+      "name": "Series Name",
+      "description": "Series description...",
+      "addedAt": 1716945600000,
+      "updatedAt": 1716945600000,
+      "books": [
+        {
+          "id": "book_uuid",
+          "media": {
+            "metadata": {
+              "title": "Book Title",
+              "series": [
+                {
+                  "id": "series_uuid",
+                  "name": "Series Name",
+                  "sequence": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+
 ## 3. Playback Sessions & Progress Syncing
 
 ### A. Start Playback Session

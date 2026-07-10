@@ -18,8 +18,8 @@ It depends on:
 ## 2. Data Integration & Sync
 
 ### A. API Endpoints
-- **List Library Series**: `GET /api/libraries/{libraryId}/series`
-  - *Returns*: An array of series metadata blocks containing series ID, name, number of books, and optional description.
+- **List Library Series**: `GET /api/libraries/{libraryId}/series?minified=0`
+  - *Returns*: An array of series metadata blocks containing series ID, name, description, and the list of books in the series. `minified=0` is required to obtain the books array, which contains ordering information (`seriesSequence`).
 - **Fetch Specific Series Items**: `GET /api/series/{seriesId}` (or constructed locally by matching books in the local cache with the corresponding series identifier).
 
 ### B. Sync Strategy & Caching
@@ -30,6 +30,7 @@ It depends on:
 3. **Database Schema**:
    - `SeriesEntity`: `id` (String, PK), `libraryId` (String), `name` (String), `description` (String?), `bookCount` (Int), `etag` (String?).
    - A relationship is maintained between books and series (e.g., `BookEntity` having a nullable `seriesId` and a `seriesSequence` string representing order in the series).
+   - **Fallback Sequence Logic**: During sync, if `seriesSequence` is null or empty in the metadata, the sync process must fallback to using the book's index in the returned `books` array (1-indexed) to preserve the correct series ordering.
 
 ---
 

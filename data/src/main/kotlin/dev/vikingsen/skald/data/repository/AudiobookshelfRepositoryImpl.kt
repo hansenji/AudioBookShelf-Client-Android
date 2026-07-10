@@ -924,9 +924,10 @@ class AudiobookshelfRepositoryImpl(
                     
                     // Update book items relation
                     seriesResponseList.forEach { seriesItem ->
-                        seriesItem.books?.forEach { bookItem ->
+                        seriesItem.books?.forEachIndexed { index, bookItem ->
                             val existing = bookDao.getBookById(bookItem.id)
                             val sequence = bookItem.media.metadata.series?.firstOrNull { it.id == seriesItem.id }?.sequence
+                                ?: (index + 1).toString()
                             if (existing != null) {
                                 if (existing.seriesId != seriesItem.id || existing.seriesSequence != sequence) {
                                     bookDao.insertBook(existing.copy(

@@ -133,6 +133,9 @@ interface SeriesDao {
     @Query("SELECT * FROM series WHERE id = :seriesId")
     suspend fun getSeriesById(seriesId: String): SeriesEntity?
 
+    @Query("SELECT * FROM series WHERE id = :seriesId")
+    fun getSeriesByIdFlow(seriesId: String): Flow<SeriesEntity?>
+
     @Query("SELECT COUNT(*) FROM series WHERE libraryId = :libraryId")
     fun getSeriesCountFlow(libraryId: String): Flow<Int>
 

@@ -1509,6 +1509,22 @@ class AudiobookshelfRepositoryImpl(
             }
         }
     }
+
+    override fun getSeriesByIdFlow(seriesId: String): Flow<Series?> {
+        return db.seriesDao().getSeriesByIdFlow(seriesId).map { it?.toDomain() }
+    }
+
+    override fun getPlaylistsContainingBookFlow(bookId: String): Flow<List<Playlist>> {
+        return db.playlistDao().getPlaylistsContainingBookFlow(bookId).map { list ->
+            list.map { entity -> entity.toDomain(items = emptyList()) }
+        }
+    }
+
+    override fun getCollectionsContainingBookFlow(bookId: String): Flow<List<BookCollection>> {
+        return db.collectionDao().getCollectionsContainingBookFlow(bookId).map { list ->
+            list.map { entity -> entity.toDomain(bookIds = emptyList(), bookCovers = emptyList()) }
+        }
+    }
 }
 
 

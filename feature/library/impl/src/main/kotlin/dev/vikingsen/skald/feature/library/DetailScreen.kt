@@ -4,17 +4,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -42,6 +45,9 @@ fun DetailScreen(
     bookId: String,
     onBackClick: () -> Unit,
     onPlayClick: () -> Unit,
+    onSeriesClick: (String) -> Unit = {},
+    onPlaylistClick: (String) -> Unit = {},
+    onCollectionClick: (String) -> Unit = {},
     viewModel: DetailViewModel = koinViewModel()
 ) {
     LaunchedEffect(bookId) {
@@ -108,6 +114,9 @@ fun DetailScreen(
                         viewModel.playBook(startPos)
                         onPlayClick()
                     },
+                    onSeriesClick = onSeriesClick,
+                    onPlaylistClick = onPlaylistClick,
+                    onCollectionClick = onCollectionClick,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -145,6 +154,9 @@ fun DetailContent(
     onDownloadClick: () -> Unit,
     onRemoveDownloadClick: () -> Unit,
     onPlayClick: (Double) -> Unit,
+    onSeriesClick: (String) -> Unit,
+    onPlaylistClick: (String) -> Unit,
+    onCollectionClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -345,6 +357,108 @@ fun DetailContent(
         if (downloadError != null) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = downloadError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+        }
+
+        // Series Association
+        book.series?.let { series ->
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Series",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            val label = if (!series.sequence.isNullOrEmpty()) {
+                "${series.name} #${series.sequence}"
+            } else {
+                series.name
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AssistChip(
+                    onClick = { onSeriesClick(series.id) },
+                    label = { Text(label) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.List,
+                            contentDescription = "Series",
+                            modifier = Modifier.size(AssistChipDefaults.IconSize)
+                        )
+                    }
+                )
+            }
+        }
+
+        // Playlists Association
+        if (book.playlists.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Playlists",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                book.playlists.forEach { playlist ->
+                    AssistChip(
+                        onClick = { onPlaylistClick(playlist.id) },
+                        label = { Text(playlist.name) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.PlaylistPlay,
+                                contentDescription = "Playlist",
+                                modifier = Modifier.size(AssistChipDefaults.IconSize)
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
+        // Collections Association
+        if (book.collections.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Collections",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                book.collections.forEach { collection ->
+                    AssistChip(
+                        onClick = { onCollectionClick(collection.id) },
+                        label = { Text(collection.name) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Folder,
+                                contentDescription = "Collection",
+                                modifier = Modifier.size(AssistChipDefaults.IconSize)
+                            )
+                        }
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))

@@ -190,6 +190,15 @@ fun MainNavigation() {
                             },
                             onPlayClick = {
                                 backStack.add(Player)
+                            },
+                            onSeriesClick = { seriesId ->
+                                backStack.add(SeriesDetail(seriesId))
+                            },
+                            onPlaylistClick = { playlistId ->
+                                backStack.add(PlaylistDetail(playlistId))
+                            },
+                            onCollectionClick = { collectionId ->
+                                backStack.add(CollectionDetail(collectionId))
                             }
                         )
                     }

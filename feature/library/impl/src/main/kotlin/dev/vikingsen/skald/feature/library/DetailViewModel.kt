@@ -29,6 +29,22 @@ data class ChapterUiModel(
     val durationText: String
 )
 
+data class SeriesUiModel(
+    val id: String,
+    val name: String,
+    val sequence: String?
+)
+
+data class PlaylistUiModel(
+    val id: String,
+    val name: String
+)
+
+data class CollectionUiModel(
+    val id: String,
+    val name: String
+)
+
 data class BookDetailUiModel(
     val id: String,
     val libraryId: String,
@@ -43,7 +59,10 @@ data class BookDetailUiModel(
     val description: String,
     val chapters: List<ChapterUiModel>,
     val progress: PlaybackProgressUiModel?,
-    val progressLeftText: String?
+    val progressLeftText: String?,
+    val series: SeriesUiModel? = null,
+    val playlists: List<PlaylistUiModel> = emptyList(),
+    val collections: List<CollectionUiModel> = emptyList()
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -65,56 +84,104 @@ class DetailViewModel(
         .flatMapLatest { id -> getBookWithProgressUseCase(id) }
         .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = null)
 
-    val bookDetail: StateFlow<BookDetailUiModel?> = bookAndProgress
-        .map { pair ->
-            val book = pair?.first ?: return@map null
-            val progress = pair.second
-            
-            val serverUrl = settingsRepository.getServerUrl() ?: ""
-            val token = settingsRepository.getToken() ?: ""
-            
-            val coverUrl = if (!book.coverPath.isNullOrEmpty()) book.coverPath!!
-                           else "${serverUrl.trimEnd('/')}/api/items/${book.id}/cover"
-            val authHeader = if (!book.coverPath.isNullOrEmpty()) null
-                             else "Bearer $token"
-                             
-            val progressLeftText = progress?.let {
-                val left = book.duration - it.currentTime
-                formatDuration(left)
+    val bookSeries: Flow<SeriesUiModel?> = bookAndProgress
+        .map { it?.first?.seriesId }
+        .distinctUntilChanged()
+        .flatMapLatest { seriesId ->
+            if (seriesId != null) {
+                repository.getSeriesByIdFlow(seriesId).map { series ->
+                    series?.let {
+                        SeriesUiModel(
+                            id = it.id,
+                            name = it.name,
+                            sequence = bookAndProgress.value?.first?.seriesSequence
+                        )
+                    }
+                }
+            } else {
+                flowOf(null)
             }
-
-            BookDetailUiModel(
-                id = book.id,
-                libraryId = book.libraryId,
-                title = book.title,
-                author = book.author,
-                narrator = book.narrator,
-                duration = book.duration,
-                durationText = formatDuration(book.duration),
-                coverUrl = coverUrl,
-                authorizationHeader = authHeader,
-                isDownloaded = book.isDownloaded,
-                description = book.description,
-                chapters = book.chapters.mapIndexed { index, chapter ->
-                    ChapterUiModel(
-                        title = chapter.title.ifEmpty { "Chapter ${index + 1}" },
-                        start = chapter.start,
-                        end = chapter.end,
-                        startText = formatPosition(chapter.start),
-                        durationText = formatDuration(chapter.end - chapter.start)
-                    )
-                },
-                progress = progress?.let {
-                    PlaybackProgressUiModel(
-                        progress = it.progress,
-                        isFinished = it.isFinished,
-                        currentTime = it.currentTime,
-                        lastUpdated = it.lastUpdated
-                    )
-                },
-                progressLeftText = progressLeftText
-            )
         }
+
+    val bookPlaylists: Flow<List<PlaylistUiModel>> = bookId
+        .flatMapLatest { id ->
+            if (id != null) {
+                repository.getPlaylistsContainingBookFlow(id).map { list ->
+                    list.map { PlaylistUiModel(id = it.id, name = it.name) }
+                }
+            } else {
+                flowOf(emptyList())
+            }
+        }
+
+    val bookCollections: Flow<List<CollectionUiModel>> = bookId
+        .flatMapLatest { id ->
+            if (id != null) {
+                repository.getCollectionsContainingBookFlow(id).map { list ->
+                    list.map { CollectionUiModel(id = it.id, name = it.name) }
+                }
+            } else {
+                flowOf(emptyList())
+            }
+        }
+
+    val bookDetail: StateFlow<BookDetailUiModel?> = combine(
+        bookAndProgress,
+        bookSeries,
+        bookPlaylists,
+        bookCollections
+    ) { pair, series, playlists, collections ->
+        val book = pair?.first ?: return@combine null
+        val progress = pair.second
+        
+        val serverUrl = settingsRepository.getServerUrl() ?: ""
+        val token = settingsRepository.getToken() ?: ""
+        
+        val coverUrl = if (!book.coverPath.isNullOrEmpty()) book.coverPath!!
+                       else "${serverUrl.trimEnd('/')}/api/items/${book.id}/cover"
+        val authHeader = if (!book.coverPath.isNullOrEmpty()) null
+                         else "Bearer $token"
+                         
+        val progressLeftText = progress?.let {
+            val left = book.duration - it.currentTime
+            formatDuration(left)
+        }
+
+        BookDetailUiModel(
+            id = book.id,
+            libraryId = book.libraryId,
+            title = book.title,
+            author = book.author,
+            narrator = book.narrator,
+            duration = book.duration,
+            durationText = formatDuration(book.duration),
+            coverUrl = coverUrl,
+            authorizationHeader = authHeader,
+            isDownloaded = book.isDownloaded,
+            description = book.description,
+            chapters = book.chapters.mapIndexed { index, chapter ->
+                ChapterUiModel(
+                    title = chapter.title.ifEmpty { "Chapter ${index + 1}" },
+                    start = chapter.start,
+                    end = chapter.end,
+                    startText = formatPosition(chapter.start),
+                    durationText = formatDuration(chapter.end - chapter.start)
+                )
+            },
+            progress = progress?.let {
+                PlaybackProgressUiModel(
+                    progress = it.progress,
+                    isFinished = it.isFinished,
+                    currentTime = it.currentTime,
+                    lastUpdated = it.lastUpdated
+                )
+            },
+            progressLeftText = progressLeftText,
+            series = series,
+            playlists = playlists,
+            collections = collections
+        )
+    }
         .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = null)
 
     val showMiniPlayer: StateFlow<Boolean> = getMiniPlayerStateUseCase()

@@ -59,6 +59,10 @@ Detail data flows through these layers:
    - Start time (formatted as `HH:MM:SS`).
    - Duration (formatted).
 4. **Progress Display**: If progress exists, show remaining time formatted as a duration string.
+5. **Series Association**: If the book is part of a series, display the series name (and sequence if available, e.g., "Series Name #Sequence"). Tapping it navigates to that series detail screen.
+6. **Playlists Association**: Display a list of all playlists this book is a part of. Tapping a playlist navigates to its detail screen.
+7. **Collections Association**: Display a list of all collections this book is a part of. Tapping a collection navigates to its detail screen.
+8. **UI Presentation**: Associated groups (Series, Playlists, Collections) should be displayed as interactive, tappable chips or links that provide clear navigation visual feedback.
 
 ### B. Download Management
 1. **Download Action**: Initiates download of all audio files not yet marked `COMPLETED` using the Android `DownloadManager`.

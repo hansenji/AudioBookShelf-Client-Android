@@ -93,4 +93,7 @@ open class FakeAudiobookshelfRepository : AudiobookshelfRepository {
     override suspend fun addBookToPlaylist(playlistId: String, bookId: String): Result<Unit> = Result.success(Unit)
     override suspend fun createPlaylistWithBook(name: String, libraryId: String, bookId: String): Result<Unit> = Result.success(Unit)
     override suspend fun removePlaylistItem(playlistId: String, bookId: String): Result<Unit> = Result.success(Unit)
+    override fun getSeriesByIdFlow(seriesId: String): Flow<Series?> = emptyFlow()
+    override fun getPlaylistsContainingBookFlow(bookId: String): Flow<List<Playlist>> = emptyFlow()
+    override fun getCollectionsContainingBookFlow(bookId: String): Flow<List<BookCollection>> = emptyFlow()
 }

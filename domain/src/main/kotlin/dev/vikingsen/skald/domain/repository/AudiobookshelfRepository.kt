@@ -70,6 +70,9 @@ interface AudiobookshelfRepository {
     suspend fun addBookToPlaylist(playlistId: String, bookId: String): Result<Unit>
     suspend fun createPlaylistWithBook(name: String, libraryId: String, bookId: String): Result<Unit>
     suspend fun removePlaylistItem(playlistId: String, bookId: String): Result<Unit>
+    fun getSeriesByIdFlow(seriesId: String): Flow<Series?>
+    fun getPlaylistsContainingBookFlow(bookId: String): Flow<List<Playlist>>
+    fun getCollectionsContainingBookFlow(bookId: String): Flow<List<BookCollection>>
 }
 
 

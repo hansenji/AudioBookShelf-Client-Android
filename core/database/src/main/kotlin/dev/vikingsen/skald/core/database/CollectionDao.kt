@@ -66,4 +66,11 @@ interface CollectionDao {
         deleteCrossRefsForCollection(collectionId)
         insertCrossRefs(crossRefs)
     }
+
+    @Query("""
+        SELECT c.* FROM collections c
+        INNER JOIN collection_books cb ON c.id = cb.collectionId
+        WHERE cb.bookId = :bookId
+    """)
+    fun getCollectionsContainingBookFlow(bookId: String): Flow<List<CollectionEntity>>
 }

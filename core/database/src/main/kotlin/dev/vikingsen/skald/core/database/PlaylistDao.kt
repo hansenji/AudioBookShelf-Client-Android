@@ -51,4 +51,11 @@ interface PlaylistDao {
 
     @Query("UPDATE playlists SET duration = :duration, itemCount = :itemCount, lastUpdated = :lastUpdated WHERE id = :playlistId")
     suspend fun updatePlaylistStats(playlistId: String, duration: Double, itemCount: Int, lastUpdated: Long)
+
+    @Query("""
+        SELECT p.* FROM playlists p
+        INNER JOIN playlist_items pi ON p.id = pi.playlistId
+        WHERE pi.libraryItemId = :bookId
+    """)
+    fun getPlaylistsContainingBookFlow(bookId: String): Flow<List<PlaylistEntity>>
 }

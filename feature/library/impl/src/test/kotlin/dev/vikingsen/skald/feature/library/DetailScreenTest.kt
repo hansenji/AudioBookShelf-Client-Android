@@ -48,7 +48,10 @@ class DetailScreenTest {
         description = "A great adventure story.",
         chapters = emptyList(),
         progress = null,
-        progressLeftText = null
+        progressLeftText = null,
+        series = null,
+        playlists = emptyList(),
+        collections = emptyList()
     )
 
     @Before
@@ -170,5 +173,48 @@ class DetailScreenTest {
         composeTestRule.onNodeWithContentDescription("Back").performClick()
 
         assertTrue(backClicked)
+    }
+
+    @Test
+    fun detailScreen_rendersAssociationsAndTriggersCallbacks() {
+        val seriesModel = SeriesUiModel(id = "series-1", name = "Middle Earth", sequence = "1")
+        val playlistModel = PlaylistUiModel(id = "playlist-1", name = "Tolkien Favorites")
+        val collectionModel = CollectionUiModel(id = "collection-1", name = "Fantasy Collection")
+        
+        bookDetailFlow.value = testBookDetail.copy(
+            series = seriesModel,
+            playlists = listOf(playlistModel),
+            collections = listOf(collectionModel)
+        )
+        isLoadingFlow.value = false
+
+        var seriesClicked = ""
+        var playlistClicked = ""
+        var collectionClicked = ""
+
+        composeTestRule.setContent {
+            DetailScreen(
+                bookId = "book-1",
+                onBackClick = {},
+                onPlayClick = {},
+                onSeriesClick = { seriesClicked = it },
+                onPlaylistClick = { playlistClicked = it },
+                onCollectionClick = { collectionClicked = it },
+                viewModel = viewModel
+            )
+        }
+
+        // Verify chips and headings are shown
+        composeTestRule.onNodeWithText("Series").assertExists()
+        composeTestRule.onNodeWithText("Playlists").assertExists()
+        composeTestRule.onNodeWithText("Collections").assertExists()
+        
+        composeTestRule.onNodeWithText("Middle Earth #1").assertExists().performClick()
+        composeTestRule.onNodeWithText("Tolkien Favorites").assertExists().performClick()
+        composeTestRule.onNodeWithText("Fantasy Collection").assertExists().performClick()
+
+        assertEquals("series-1", seriesClicked)
+        assertEquals("playlist-1", playlistClicked)
+        assertEquals("collection-1", collectionClicked)
     }
 }

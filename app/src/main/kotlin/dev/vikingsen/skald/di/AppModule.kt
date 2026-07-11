@@ -14,7 +14,6 @@ import dev.vikingsen.skald.feature.miniplayer.featureMiniPlayerModule
 import dev.vikingsen.skald.feature.home.featureHomeModule
 import dev.vikingsen.skald.feature.settings.featureSettingsModule
 import dev.vikingsen.skald.MainViewModel
-import dev.vikingsen.skald.appfunctions.SkaldAppFunctions
 import org.koin.dsl.module
 import org.koin.plugin.module.dsl.viewModel
 
@@ -36,16 +35,5 @@ val appModule = module {
     )
 
     viewModel<MainViewModel>()
-
-    single {
-        SkaldAppFunctions(
-            playerManager = get(),
-            repository = get(),
-            settingsRepository = get(),
-            fetchBookDetailsUseCase = get(),
-            downloadAudioFileUseCase = get(),
-            getPlaylistsUseCase = get()
-        )
-    }
 }
 

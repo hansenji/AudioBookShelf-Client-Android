@@ -16,8 +16,8 @@ android {
         applicationId = "dev.vikingsen.skald"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0.0-3"
+        versionCode = 4
+        versionName = "1.0.0-4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -154,7 +154,6 @@ dependencies {
 
   // AppFunctions
   implementation(libs.androidx.appfunctions)
-  implementation(libs.androidx.appfunctions.service)
   ksp(libs.androidx.appfunctions.compiler)
 
   // Kover Aggregated Reports

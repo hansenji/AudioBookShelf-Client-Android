@@ -39,6 +39,15 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name="dev.vikingsen.skald.appfunctions.SkaldAppFunctions"
+            android:exported="true"
+            android:permission="android.permission.BIND_APP_FUNCTION_SERVICE">
+            <intent-filter>
+                <action android:name="android.app.appfunctions.AppFunctionService" />
+            </intent-filter>
+        </service>
+
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />

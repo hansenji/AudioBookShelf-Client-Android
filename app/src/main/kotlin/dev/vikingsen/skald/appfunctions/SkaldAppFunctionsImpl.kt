@@ -1,10 +1,12 @@
 package dev.vikingsen.skald.appfunctions
 
-import androidx.appfunctions.service.AppFunction
+import androidx.appfunctions.AppFunction
 import androidx.appfunctions.AppFunctionContext
 import androidx.appfunctions.AppFunctionDisabledException
 import androidx.appfunctions.AppFunctionElementNotFoundException
 import androidx.appfunctions.AppFunctionInvalidArgumentException
+import androidx.appfunctions.AppFunctionService
+import androidx.appfunctions.AppFunctionServiceEntryPoint
 import dev.vikingsen.skald.core.model.PlaybackConstants
 import dev.vikingsen.skald.core.player.PlayerManager
 import dev.vikingsen.skald.domain.repository.AudiobookshelfRepository
@@ -15,20 +17,25 @@ import dev.vikingsen.skald.domain.usecase.GetPlaylistsUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Exposes audiobook and podcast capabilities.
  *
  * All functions require the user to be logged in to their Audiobookshelf server.
  */
-class SkaldAppFunctions(
-    private val playerManager: PlayerManager,
-    private val repository: AudiobookshelfRepository,
-    private val settingsRepository: SettingsRepository,
-    private val fetchBookDetailsUseCase: FetchBookDetailsUseCase,
-    private val downloadAudioFileUseCase: DownloadAudioFileUseCase,
-    private val getPlaylistsUseCase: GetPlaylistsUseCase,
-) {
+@AppFunctionServiceEntryPoint(
+    serviceName = "SkaldAppFunctions",
+    appFunctionXmlFileName = "app_metadata"
+)
+abstract class SkaldAppFunctionsImpl : AppFunctionService(), KoinComponent {
+    private val playerManager: PlayerManager by inject()
+    private val repository: AudiobookshelfRepository by inject()
+    private val settingsRepository: SettingsRepository by inject()
+    private val fetchBookDetailsUseCase: FetchBookDetailsUseCase by inject()
+    private val downloadAudioFileUseCase: DownloadAudioFileUseCase by inject()
+    private val getPlaylistsUseCase: GetPlaylistsUseCase by inject()
 
     // -------------------------------------------------------------------------
     // Playback Control

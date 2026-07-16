@@ -136,7 +136,7 @@ class SettingsScreenTest {
         assertTrue(viewModel.hideEmptyLibraryTabs.value)
 
         // Toggle the Hide Empty Tabs switch sibling
-        composeTestRule.onNode(hasParent(hasAnyDescendant(hasText("Hide Empty Tabs"))) and isToggleable())
+        composeTestRule.onNode(hasParent(hasParent(hasAnyDescendant(hasText("Hide Empty Tabs")))) and isToggleable())
             .performScrollTo()
             .performClick()
 
@@ -158,7 +158,7 @@ class SettingsScreenTest {
         assertFalse(viewModel.goBackOnInterrupt.value)
 
         // Toggle Go Back on Interrupt switch sibling
-        composeTestRule.onNode(hasParent(hasAnyDescendant(hasText("Go Back on Interrupt"))) and isToggleable())
+        composeTestRule.onNode(hasParent(hasParent(hasAnyDescendant(hasText("Go Back on Interrupt")))) and isToggleable())
             .performScrollTo()
             .performClick()
 

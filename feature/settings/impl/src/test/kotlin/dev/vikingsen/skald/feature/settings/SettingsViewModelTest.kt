@@ -6,8 +6,12 @@ import dev.vikingsen.skald.core.model.Library
 import dev.vikingsen.skald.domain.fakes.FakeAudiobookshelfRepository
 import dev.vikingsen.skald.domain.fakes.FakeSettingsRepository
 import dev.vikingsen.skald.domain.usecase.LogoutUseCase
+import dev.vikingsen.skald.domain.usecase.GetMiniPlayerStateUseCase
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -29,6 +33,7 @@ class SettingsViewModelTest {
     private lateinit var fakeSettingsRepository: FakeSettingsRepository
     private lateinit var fakeAudiobookshelfRepository: FakeAudiobookshelfRepository
     private lateinit var logoutUseCase: LogoutUseCase
+    private lateinit var getMiniPlayerStateUseCase: GetMiniPlayerStateUseCase
     private lateinit var viewModel: SettingsViewModel
 
     @Before
@@ -39,6 +44,8 @@ class SettingsViewModelTest {
         fakeSettingsRepository = FakeSettingsRepository()
         fakeAudiobookshelfRepository = FakeAudiobookshelfRepository()
         logoutUseCase = LogoutUseCase(fakeAudiobookshelfRepository, fakeSettingsRepository)
+        getMiniPlayerStateUseCase = mockk()
+        every { getMiniPlayerStateUseCase() } returns flowOf(null)
 
         // Seed default preferences in fake repo
         fakeSettingsRepository.fakeUrl = "https://my-server.com"
@@ -78,6 +85,7 @@ class SettingsViewModelTest {
             logoutUseCase = logoutUseCase,
             settingsRepository = fakeSettingsRepository,
             audiobookshelfRepository = fakeAudiobookshelfRepository,
+            getMiniPlayerStateUseCase = getMiniPlayerStateUseCase,
             context = context,
             ioDispatcher = testDispatcher
         )

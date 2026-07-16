@@ -7,7 +7,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.vikingsen.skald.domain.repository.AudiobookshelfRepository
 import dev.vikingsen.skald.domain.repository.SettingsRepository
+import dev.vikingsen.skald.domain.usecase.GetMiniPlayerStateUseCase
 import dev.vikingsen.skald.domain.usecase.LogoutUseCase
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +24,7 @@ class SettingsViewModel(
     private val logoutUseCase: LogoutUseCase,
     private val settingsRepository: SettingsRepository,
     private val audiobookshelfRepository: AudiobookshelfRepository,
+    private val getMiniPlayerStateUseCase: GetMiniPlayerStateUseCase,
     private val context: Context,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
@@ -65,6 +70,10 @@ class SettingsViewModel(
 
     private val _isOffline = MutableStateFlow(false)
     val isOffline: StateFlow<Boolean> = _isOffline.asStateFlow()
+
+    val showMiniPlayer: StateFlow<Boolean> = getMiniPlayerStateUseCase()
+        .map { it != null }
+        .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = false)
 
     init {
         loadSettings()

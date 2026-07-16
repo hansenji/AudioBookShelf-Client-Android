@@ -47,6 +47,7 @@ fun SettingsScreen(
     val orphanedSize by viewModel.orphanedSize.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     val isOffline by viewModel.isOffline.collectAsState()
+    val showMiniPlayer by viewModel.showMiniPlayer.collectAsState()
 
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -359,7 +360,7 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(if (showMiniPlayer) 96.dp else 24.dp))
         }
     }
 
@@ -668,6 +669,7 @@ fun SettingsToggleItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        Spacer(modifier = Modifier.width(16.dp))
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange
